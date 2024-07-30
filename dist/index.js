@@ -45310,6 +45310,9 @@ var axios_default = axios;
 // src/index.ts
 var import_sanitize_html = __toESM(require_sanitize_html(), 1);
 import {readFile} from "node:fs/promises";
+var freeloMention = function(username) {
+  return Object.keys(userPairing).includes(username) ? `<div><span data-freelo-mention="1" data-freelo-user-id="${userPairing[username]}">@${username}</span></div>` : `<a href="https://github.com/${username}">${username}</a>`;
+};
 var email = core.getInput("email");
 var apiKey = core.getInput("api-key");
 var projectId = core.getInput("project-id");
@@ -45325,14 +45328,29 @@ var action = github.context.payload.action;
 var issue = github.context.payload.issue;
 var comment = github.context.payload.comment;
 var apiEndpoint = "https://api.freelo.io/v1";
-var defaultHeaders = {
-  "User-Agent": "Freelo GitHub Action/1.0.0",
-  "Content-Type": "application/json"
+var defaultOptions = {
+  auth: {
+    username: email,
+    password: apiKey
+  },
+  headers: {
+    "User-Agent": "Freelo GitHub Action/1.0.0",
+    "Content-Type": "application/json"
+  }
 };
 var sanitizeOptions = {
   allowedTags: ["a", "p", "i", "b", "strong"],
   allowedAttributes: false
 };
+var userPairing = {};
+try {
+  for (const u of (await readFile("./.github/freelo.txt", { encoding: "utf-8" })).split("\n")) {
+    const p = u.split(":");
+    userPairing[p[0]] = p[1];
+  }
+} catch (e) {
+  console.log("No valid freelo.txt found in .github folder, skipping");
+}
 try {
   if (!action) {
     throw new Error("No action was passed");
@@ -45347,21 +45365,14 @@ try {
     if (!tasklistId && !taskId) {
       throw new Error("Either task-id or tasklist-id needs to be set!");
     }
-    let userPairing;
-    try {
-      userPairing = (await readFile("./.github/freelo.txt", { encoding: "utf-8" })).split("\n");
-    } catch (e) {
-      console.log("No freelo.txt found in .github folder, skipping");
-    }
     if (tasklistId) {
       switch (action) {
         case "opened": {
-          const author = userPairing && userPairing.filter((u) => u.includes(issue.user.login)).length > 0 ? `<div><span data-freelo-mention="1" data-freelo-user-id="${userPairing.filter((u) => u.includes(issue.user.login))[0].split(":")[1]}">@${issue.user.login}</span></div>` : `<a href="https://github.com/${issue.user.login}">${issue.user.login}</a>`;
-          console.log(userPairing?.filter((u) => u.includes(issue.user.login)).length);
           const taskComment = `
-                Created by: ${author}<br>
+                Created by: ${freeloMention(issue.user.login)}<br>
                 Description: ${import_sanitize_html.default(issue.body ?? "None", sanitizeOptions)}<br>
                 GitHub issue: <a href="${issue.url}">#${issue.number}</a><br>
+                Assigned to: ${issue.assignee ? `${freeloMention(issue.assignee.login)}` : "Nobody"}<br>
                 <i>(This action was performed automatically)</i>
                 `;
           const taskContent = {
@@ -45370,13 +45381,7 @@ try {
               content: taskComment
             }
           };
-          const res = await axios_default.post(`${apiEndpoint}/project/${projectId}/tasklist/${tasklistId}/tasks`, taskContent, {
-            headers: defaultHeaders,
-            auth: {
-              username: email,
-              password: apiKey
-            }
-          });
+          const res = await axios_default.post(`${apiEndpoint}/project/${projectId}/tasklist/${tasklistId}/tasks`, taskContent, defaultOptions);
           if (res.status > 399) {
             console.error(res.data);
             throw new Error("Got an error response from Freelo API");
@@ -45391,8 +45396,31 @@ try {
         }
         case "edited":
           break;
-        case "closed":
+        case "closed": {
+          const comment2 = (await octokit.rest.issues.listComments({
+            owner: github.context.payload.repository?.owner.login ?? "",
+            repo: github.context.payload.repository?.name ?? "",
+            issue_number: issue.number,
+            mediaType: {
+              format: "html"
+            }
+          })).data.filter((i) => i.user?.login === "github-actions" && i.user.type === "Bot");
+          if (comment2.length === 0)
+            break;
+          console.log(comment2.length);
+          console.log(comment2[0].body_html);
+          const taskId2 = /https:\/\/app.freelo.io\/task\/(\d+)/.exec(comment2[0].body_html ?? "");
+          if (!taskId2 || taskId2.length === 0) {
+            console.log("Comment found, but no Freelo task ID identified");
+            break;
+          }
+          const res = await axios_default.post(`${apiEndpoint}/task/${taskId2[1]}`, null, defaultOptions);
+          if (res.status > 399) {
+            console.error(res.data);
+            throw new Error("Got an error response from Freelo API");
+          }
           break;
+        }
         case "reopened":
           break;
         case "assigned":
