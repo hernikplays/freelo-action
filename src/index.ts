@@ -64,7 +64,6 @@ try {
 	if (!action) {
 		throw new Error("No action was passed");
 	}
-    console.log(action)
 	if (!email || !apiKey || !projectId) {
 		throw new Error(
 			"You are missing a required parameter. Check the documentation for details.",
@@ -134,8 +133,9 @@ try {
 							},
 						})
 					).data.filter(
-						(i) => i.user?.login === "github-actions" && i.user.type === "Bot",
+						(i) => i.user?.type === "Bot",
 					);
+                    console.log(comment[0].user?.name)
 					if (comment.length === 0) break; // not a Freelo task, skip
 					console.log(comment.length);
 					console.log(comment[0].body_html);

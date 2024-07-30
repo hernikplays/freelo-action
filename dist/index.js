@@ -45355,7 +45355,6 @@ try {
   if (!action) {
     throw new Error("No action was passed");
   }
-  console.log(action);
   if (!email || !apiKey || !projectId) {
     throw new Error("You are missing a required parameter. Check the documentation for details.");
   }
@@ -45403,7 +45402,8 @@ try {
             mediaType: {
               format: "html"
             }
-          })).data.filter((i) => i.user?.login === "github-actions" && i.user.type === "Bot");
+          })).data.filter((i) => i.user?.type === "Bot");
+          console.log(comment2[0].user?.name);
           if (comment2.length === 0)
             break;
           console.log(comment2.length);
