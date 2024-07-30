@@ -62,6 +62,7 @@ function freeloMention(username: string): string {
 
 try {
 	if (!action) {
+        // TODO: Is run manually, check all issues
 		throw new Error("No action was passed");
 	}
 	if (!email || !apiKey || !projectId) {
@@ -133,7 +134,8 @@ try {
 							},
 						})
 					).data.filter(
-						(i) => i.user?.type === "Bot" && i.user.login === "github-actions[bot]",
+						(i) =>
+							i.user?.type === "Bot" && i.user.login === "github-actions[bot]",
 					);
 					if (comment.length === 0) break; // not a Freelo task, skip
 
@@ -157,8 +159,44 @@ try {
 					}
 					break;
 				}
-				case "reopened":
+				case "reopened": {
+					// Get comments and find the related Freelo task ID
+					const comment = (
+						await octokit.rest.issues.listComments({
+							...context.repo,
+							issue_number: issue.number,
+							mediaType: {
+								format: "html",
+							},
+						})
+					).data.filter(
+						(i) =>
+							i.user?.type === "Bot" && i.user.login === "github-actions[bot]",
+					);
+					if (comment.length === 0) break; // not a Freelo task, skip
+
+					// Finish task in Freelo
+					const taskId = /https:\/\/app.freelo.io\/task\/(\d+)/.exec(
+						comment[0].body_html ?? "",
+					);
+					if (!taskId || taskId.length === 0) {
+						console.log("Comment found, but no Freelo task ID identified");
+						break;
+					}
+
+                    // Reactivate
+                    const res = await axios.post(
+						`${apiEndpoint}/task/${taskId[1]}/activate`,
+						null,
+						defaultOptions,
+					);
+
+					if (res.status > 399) {
+						console.error(res.data);
+						throw new Error("Got an error response from Freelo API");
+					}
 					break;
+				}
 				case "assigned":
 					break;
 				case "unassigned":
