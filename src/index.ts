@@ -133,12 +133,9 @@ try {
 							},
 						})
 					).data.filter(
-						(i) => i.user?.type === "Bot",
+						(i) => i.user?.type === "Bot" && i.user.login === "github-actions[bot]",
 					);
-                    console.log(comment[0].user?.login)
 					if (comment.length === 0) break; // not a Freelo task, skip
-					console.log(comment.length);
-					console.log(comment[0].body_html);
 
 					// Finish task in Freelo
 					const taskId = /https:\/\/app.freelo.io\/task\/(\d+)/.exec(
@@ -148,7 +145,6 @@ try {
 						console.log("Comment found, but no Freelo task ID identified");
 						break;
 					}
-                    console.log(`${apiEndpoint}/task/${taskId[1]}/finish`)
 					const res = await axios.post(
 						`${apiEndpoint}/task/${taskId[1]}/finish`,
 						null,

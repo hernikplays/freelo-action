@@ -45402,18 +45402,14 @@ try {
             mediaType: {
               format: "html"
             }
-          })).data.filter((i) => i.user?.type === "Bot");
-          console.log(comment2[0].user?.login);
+          })).data.filter((i) => i.user?.type === "Bot" && i.user.login === "github-actions[bot]");
           if (comment2.length === 0)
             break;
-          console.log(comment2.length);
-          console.log(comment2[0].body_html);
           const taskId2 = /https:\/\/app.freelo.io\/task\/(\d+)/.exec(comment2[0].body_html ?? "");
           if (!taskId2 || taskId2.length === 0) {
             console.log("Comment found, but no Freelo task ID identified");
             break;
           }
-          console.log(`${apiEndpoint}/task/${taskId2[1]}/finish`);
           const res = await axios_default.post(`${apiEndpoint}/task/${taskId2[1]}/finish`, null, defaultOptions);
           if (res.status > 399) {
             console.error(res.data);
