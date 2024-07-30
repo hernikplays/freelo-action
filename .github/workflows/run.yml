@@ -1,4 +1,4 @@
-name: Run the action
+name: Sync issues to Freelo
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   run-my-action:
-    name: Checks if this action works
+    name: Run sync
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -17,6 +17,6 @@ jobs:
         with:
           email: ${{ secrets.FREELO_EMAIL }}
           api-key: ${{ secrets.FREELO_TOKEN }}
-          project-id: "407412"
-          tasklist-id: "1167357"
+          project-id: ${{ vars.FREELO_PROJECT }}
+          tasklist-id: ${{ vars.FREELO_TASKLIST }}
           github-token: ${{ secrets.GITHUB_TOKEN }}

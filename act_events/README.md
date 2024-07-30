@@ -1,0 +1,1 @@
+These can be passed to [act](https://nektosact.com) to test the action locally.
