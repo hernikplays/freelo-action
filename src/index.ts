@@ -135,7 +135,7 @@ try {
 					).data.filter(
 						(i) => i.user?.type === "Bot",
 					);
-                    console.log(comment[0].user?.name)
+                    console.log(comment[0].user?.login)
 					if (comment.length === 0) break; // not a Freelo task, skip
 					console.log(comment.length);
 					console.log(comment[0].body_html);

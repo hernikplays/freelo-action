@@ -45403,7 +45403,7 @@ try {
               format: "html"
             }
           })).data.filter((i) => i.user?.type === "Bot");
-          console.log(comment2[0].user?.name);
+          console.log(comment2[0].user?.login);
           if (comment2.length === 0)
             break;
           console.log(comment2.length);
