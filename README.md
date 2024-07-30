@@ -36,6 +36,8 @@ jobs:
 > It's okay to omit some of the `on` listening types, but it is needed to keep the `issue.opened` type,
 > because it creates the task and the comment to track the task across action runs.
 
+If you want to sync your current repository, run the workflow manually (`workflow_dispatch`). **This will only sync open issues.** Make sure to check the available parameters below.
+
 ### Parameters
 | Parameter    | Description                                                                                      | Required                    |
 |--------------|--------------------------------------------------------------------------------------------------|-----------------------------|
@@ -45,6 +47,8 @@ jobs:
 | github-token | GitHub token used to create issue comments; you should use the default `secrets.GITHUB_TOKEN`    | Yes                         |
 | task-id      | ID of the task under which subtasks will be created from issues                                  | If `tasklist-id` is not set |
 | tasklist-id  | ID of the tasklist where tasks will be created from issues                                       | If `task-id` is not set     |
+| create-tasks-for-unknown  | Whether to create new tasks for issues without a Freelo comment from actions bot; used only when running the workflow manually                  | If `task-id` is not set     |
+| manually-sync-new-comments  | Whether to sync new comments when running the workflow manually                  | If `task-id` is not set     |
 
 ### Linking GitHub users to Freelo users
 The action will look for a `freelo.txt` file inside of your `.github` folder (the one where Action workflows are stored).

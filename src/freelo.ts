@@ -1,6 +1,6 @@
 interface Label {
 	name: string;
-	color: string;
+	color?: string;
 }
 
 interface NewTask {

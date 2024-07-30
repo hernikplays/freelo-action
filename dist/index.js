@@ -45331,6 +45331,8 @@ var projectId = core.getInput("project-id");
 var taskId = core.getInput("task-id");
 var tasklistId = core.getInput("tasklist-id");
 var token = core.getInput("github-token");
+var createTasks = core.getInput("create-tasks-for-unknown");
+var syncComments = core.getInput("manually-sync-new-comments");
 if (!token) {
   core.setFailed("No GitHub token passed");
   throw new Error("No GitHub token passed");
@@ -45365,7 +45367,121 @@ try {
 }
 try {
   if (!action) {
-    throw new Error("No action was passed");
+    const issues = await octokit.rest.issues.listForRepo({ ...github.context.repo, state: "open" });
+    for (const i of issues.data) {
+      const currentTaskId = await freeloId(i.number);
+      if (!currentTaskId || currentTaskId.length === 1) {
+        console.log(`${i.number} has no Freelo comment`);
+        if (!createTasks) {
+          continue;
+        }
+        console.log(`Creating task for ${i.number}`);
+        const taskComment2 = `
+                Created by: ${freeloMention(i.user?.login ?? "Unknown")}<br>
+                Description: ${import_sanitize_html.default(i.body ?? "None", sanitizeOptions)}<br>
+                GitHub issue: <a href="${i.pull_request ? i.pull_request.url : i.url}">#${i.number}</a><br>
+                Assigned to: ${i.assignee ? `${freeloMention(i.assignee.login)}` : "Nobody"}<br>
+                ${i.pull_request ? "<b>This is a pull request<b><br>" : ""}
+                <i>(This action was performed automatically, please do not edit this comment)</i>
+                `;
+        const labels2 = [];
+        if (i.labels) {
+          for (const label of i.labels) {
+            if (typeof label === "string") {
+              labels2.push({ name: label });
+              continue;
+            }
+            if (!label.name)
+              continue;
+            labels2.push({
+              name: label.name,
+              color: label.color ?? `#${label.color}`
+            });
+          }
+        }
+        const taskContent = {
+          name: i.title,
+          comment: {
+            content: taskComment2
+          },
+          labels: labels2
+        };
+        const res = await axios_default.post(!taskId ? `${apiEndpoint}/project/${projectId}/tasklist/${tasklistId}/tasks` : `${apiEndpoint}/task/${taskId}/subtasks`, taskContent, defaultOptions);
+        if (res.status > 399) {
+          console.error(res.data);
+          throw new Error("Got an error response from Freelo API");
+        }
+        octokit.rest.issues.createComment({
+          issue_number: i.number,
+          ...github.context.repo,
+          body: `Freelo task assigned: <a href="https://app.freelo.io/task/${res.data.id}">${res.data.id}</a><br>Please do not edit or delete this comment as it is used to prevent duplication of tasks.`
+        });
+        console.log(`Created task ${res.data.id} in Freelo`);
+        continue;
+      }
+      const titleRes = await axios_default.post(`${apiEndpoint}/task/${currentTaskId[1]}`, {
+        name: i.title
+      }, defaultOptions);
+      if (titleRes.status > 399) {
+        console.error(titleRes.data);
+        throw new Error("Got an error response from Freelo API");
+      }
+      const taskComment = `
+                Created by: ${freeloMention(i.user?.login ?? "Unknown")}<br>
+                Description: ${import_sanitize_html.default(i.body ?? "None", sanitizeOptions)}<br>
+                GitHub issue: <a href="${i.url}">#${i.number}</a><br>
+                Assigned to: ${i.assignee ? `${freeloMention(i.assignee.login)}` : "Nobody"}<br>
+                <i>(This action was performed automatically, please do not edit this comment)</i>
+                `;
+      const labels = [];
+      if (i.labels) {
+        for (const label of i.labels) {
+          if (typeof label === "string") {
+            labels.push({ name: label });
+            continue;
+          }
+          if (!label.name)
+            continue;
+          labels.push({
+            name: label.name,
+            color: label.color ?? `#${label.color}`
+          });
+        }
+      }
+      const labelRes = await axios_default.post(`${apiEndpoint}/task-labels/add-to-task/${currentTaskId}`, { labels }, defaultOptions);
+      if (labelRes.status > 399) {
+        console.error(labelRes.data);
+        throw new Error("Got an error response from Freelo API");
+      }
+      const bodyRes = await axios_default.post(`${apiEndpoint}/task/${currentTaskId[1]}/description`, {
+        comment: { content: taskComment },
+        labels
+      }, defaultOptions);
+      if (bodyRes.status > 399) {
+        console.error(bodyRes.data);
+        throw new Error("Got an error response from Freelo API");
+      }
+      console.log(`Updated issue ${i.number} in Freelo as ${currentTaskId}`);
+      if (!syncComments) {
+        continue;
+      }
+      for (const c of (await octokit.rest.issues.listComments({ ...github.context.repo, issue_number: i.number })).data) {
+        const taskComment2 = `
+                Comment <a href="${c.url}">${c.id}</a> by: ${freeloMention(c.user?.login ?? "Unknown")}<br>
+                ${import_sanitize_html.default(c.body ?? "Comment not found", sanitizeOptions)}<br>
+                GitHub issue: <a href="${i.url}">#${i.number}</a><br>
+                <i>(This action was performed automatically, please do not edit this comment)</i>
+                `;
+        const res = await axios_default.post(`${apiEndpoint}/task/${currentTaskId}/comments`, {
+          content: taskComment2
+        });
+        if (res.status > 399) {
+          console.error(res.data);
+          throw new Error("Got an error response from Freelo API");
+        }
+        console.log(`Created comment ${res.data.id}`);
+      }
+    }
   }
   if (!email || !apiKey || !projectId) {
     throw new Error("You are missing a required parameter. Check the documentation for details.");
@@ -45382,7 +45498,7 @@ try {
                 GitHub issue: <a href="${issue.pull_request ? issue.pull_request.url : issue.url}">#${issue.number}</a><br>
                 Assigned to: ${issue.assignee ? `${freeloMention(issue.assignee.login)}` : "Nobody"}<br>
                 ${issue.pull_request ? "<b>This is a pull request<b><br>" : ""}
-                <i>(This action was performed automatically)</i>
+                <i>(This action was performed automatically, please do not edit this comment)</i>
                 `;
         const labels = [];
         if (issue.labels) {
@@ -45411,7 +45527,7 @@ try {
       }
       case "edited": {
         const currentTaskId = await freeloId(issue.number);
-        if (!currentTaskId || currentTaskId.length === 0) {
+        if (!currentTaskId || currentTaskId.length === 1) {
           console.log("Comment found, but no Freelo task ID identified");
           break;
         }
@@ -45427,7 +45543,7 @@ try {
                 Description: ${import_sanitize_html.default(issue.body ?? "None", sanitizeOptions)}<br>
                 GitHub issue: <a href="${issue.url}">#${issue.number}</a><br>
                 Assigned to: ${issue.assignee ? `${freeloMention(issue.assignee.login)}` : "Nobody"}<br>
-                <i>(This action was performed automatically)</i>
+                <i>(This action was performed automatically, please do not edit this comment)</i>
                 `;
         const labels = [];
         if (issue.labels) {
@@ -45452,7 +45568,7 @@ try {
       }
       case "closed": {
         const currentTaskId = await freeloId(issue.number);
-        if (!currentTaskId || currentTaskId.length === 0) {
+        if (!currentTaskId || currentTaskId.length === 1) {
           console.log("No Freelo task ID identified");
           break;
         }
@@ -45464,12 +45580,12 @@ try {
         break;
       }
       case "reopened": {
-        const currentTaskid = await freeloId(issue.number);
-        if (!currentTaskid || currentTaskid.length === 0) {
+        const currentTaskId = await freeloId(issue.number);
+        if (!currentTaskId || currentTaskId.length === 1) {
           console.log("No Freelo task ID identified");
           break;
         }
-        const res = await axios_default.post(`${apiEndpoint}/task/${currentTaskid[1]}/activate`, null, defaultOptions);
+        const res = await axios_default.post(`${apiEndpoint}/task/${currentTaskId[1]}/activate`, null, defaultOptions);
         if (res.status > 399) {
           console.error(res.data);
           throw new Error("Got an error response from Freelo API");
@@ -45480,7 +45596,7 @@ try {
         if (!github.context.payload.assignee || !userPairing[github.context.payload.assignee.login])
           break;
         const currentTaskId = await freeloId(issue.number);
-        if (!currentTaskId || currentTaskId.length === 0) {
+        if (!currentTaskId || currentTaskId.length === 1) {
           console.log("Comment found, but no Freelo task ID identified");
           break;
         }
@@ -45497,7 +45613,7 @@ try {
         if (!github.context.payload.assignee || !userPairing[github.context.payload.assignee.login])
           break;
         const currentTaskId = await freeloId(issue.number);
-        if (!currentTaskId || currentTaskId.length === 0) {
+        if (!currentTaskId || currentTaskId.length === 1) {
           console.log("Comment found, but no Freelo task ID identified");
           break;
         }
@@ -45525,7 +45641,7 @@ try {
     switch (action) {
       case "created": {
         const currentTaskId = await freeloId(issue.number);
-        if (!currentTaskId || currentTaskId.length === 0) {
+        if (!currentTaskId || currentTaskId.length === 1) {
           console.log("Comment found, but no Freelo task ID identified");
           break;
         }
@@ -45533,7 +45649,7 @@ try {
                 Comment <a href="${comment.url}">${comment.id}</a> by: ${freeloMention(comment.user.login)}<br>
                 ${import_sanitize_html.default(comment.body, sanitizeOptions)}<br>
                 GitHub issue: <a href="${issue.url}">#${issue.number}</a><br>
-                <i>(This action was performed automatically)</i>
+                <i>(This action was performed automatically, please do not edit this comment)</i>
                 `;
         const res = await axios_default.post(`${apiEndpoint}/task/${currentTaskId}/comments`, {
           content: taskComment
@@ -45547,7 +45663,7 @@ try {
       }
       case "deleted": {
         const currentTaskId = await freeloId(issue.number);
-        if (!currentTaskId || currentTaskId.length === 0) {
+        if (!currentTaskId || currentTaskId.length === 1) {
           console.log("Comment found, but no Freelo task ID identified");
           break;
         }
@@ -45571,7 +45687,7 @@ try {
       }
       case "edited": {
         const currentTaskId = await freeloId(issue.number);
-        if (!currentTaskId || currentTaskId.length === 0) {
+        if (!currentTaskId || currentTaskId.length === 1) {
           console.log("Comment found, but no Freelo task ID identified");
           break;
         }
@@ -45589,7 +45705,7 @@ try {
                 Comment <a href="${comment.url}">${comment.id}</a> by: ${freeloMention(comment.user.login)}<br>
                 ${import_sanitize_html.default(comment.body, sanitizeOptions)}<br>
                 GitHub issue: <a href="${issue.url}">#${issue.number}</a><br>
-                <i>(This action was performed automatically)</i>
+                <i>(This action was performed automatically, please do not edit this comment)</i>
                 `;
         const res = await axios_default.post(`${apiEndpoint}/comment/${findComment[0].id}`, {
           content: taskComment

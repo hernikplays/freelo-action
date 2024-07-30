@@ -19,6 +19,12 @@ inputs:
     description: 'If not empty, will submit created issues as a subtask to the set task; either this or tasklist-id has to be entered.'
   tasklist-id:
     description: 'ID of the tasklist where tasks from GitHub issues should be created; either this or task-id has to be entered.'
+  create-tasks-for-unknown:
+    description: 'Whether to create a new task for issues that do not have a Freelo comment from the actions bot. Either true or false.'
+    required: true
+  manually-sync-new-comments:
+    description: 'Whether to sync comments when running manually'
+    required: true
 runs:
   using: 'node20'
   main: 'dist/index.js'
