@@ -147,9 +147,9 @@ try {
 						console.log("Comment found, but no Freelo task ID identified");
 						break;
 					}
-
+                    console.log(`${apiEndpoint}/task/${taskId[1]}/finish`)
 					const res = await axios.post(
-						`${apiEndpoint}/task/${taskId[1]}`,
+						`${apiEndpoint}/task/${taskId[1]}/finish`,
 						null,
 						defaultOptions,
 					);

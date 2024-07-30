@@ -45412,7 +45412,8 @@ try {
             console.log("Comment found, but no Freelo task ID identified");
             break;
           }
-          const res = await axios_default.post(`${apiEndpoint}/task/${taskId2[1]}`, null, defaultOptions);
+          console.log(`${apiEndpoint}/task/${taskId2[1]}/finish`);
+          const res = await axios_default.post(`${apiEndpoint}/task/${taskId2[1]}/finish`, null, defaultOptions);
           if (res.status > 399) {
             console.error(res.data);
             throw new Error("Got an error response from Freelo API");
