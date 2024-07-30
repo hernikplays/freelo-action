@@ -1,0 +1,15 @@
+{
+    "action":"opened",
+    "issue":{
+        "body":"Testing issue through Act",
+        "number":"123",
+        "title":"GitHub Action Test",
+        "url":"https://github.com/hernikplays/freelo-action",
+        "user":{
+            "login":"hernikplays"
+        },
+        "assignee":{
+            "login":"hernikplays"
+        }
+    }
+}
