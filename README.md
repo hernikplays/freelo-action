@@ -13,7 +13,8 @@ on:
     types: [opened, edited, closed, reopened, assigned, unassigned]
   issue_comment:
     types: [created, edited, deleted]
-
+permissions:
+  issues: write
 jobs:
   run-my-action:
     name: Sync stuff to Freelo
