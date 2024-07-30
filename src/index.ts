@@ -114,8 +114,7 @@ try {
 					// create an issue comment so we can track if the task has been already created
 					octokit.rest.issues.createComment({
 						issue_number: issue.number,
-						owner: context.payload.repository?.owner.login ?? "",
-						repo: context.payload.repository?.name ?? "",
+						...context.repo,
 						body: `Freelo task assigned: <a href="https://app.freelo.io/task/${res.data.id}">${res.data.id}</a><br>Please do not edit or delete this comment as it is used to prevent duplication of tasks.`,
 					});
 					break;
@@ -127,8 +126,7 @@ try {
 					// Get comments and find the related Freelo task ID
 					const comment = (
 						await octokit.rest.issues.listComments({
-							owner: context.payload.repository?.owner.login ?? "",
-							repo: context.payload.repository?.name ?? "",
+							...context.repo,
 							issue_number: issue.number,
 							mediaType: {
 								format: "html",

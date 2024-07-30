@@ -45388,8 +45388,7 @@ try {
           }
           octokit.rest.issues.createComment({
             issue_number: issue.number,
-            owner: github.context.payload.repository?.owner.login ?? "",
-            repo: github.context.payload.repository?.name ?? "",
+            ...github.context.repo,
             body: `Freelo task assigned: <a href="https://app.freelo.io/task/${res.data.id}">${res.data.id}</a><br>Please do not edit or delete this comment as it is used to prevent duplication of tasks.`
           });
           break;
@@ -45398,8 +45397,7 @@ try {
           break;
         case "closed": {
           const comment2 = (await octokit.rest.issues.listComments({
-            owner: github.context.payload.repository?.owner.login ?? "",
-            repo: github.context.payload.repository?.name ?? "",
+            ...github.context.repo,
             issue_number: issue.number,
             mediaType: {
               format: "html"
