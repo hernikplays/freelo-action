@@ -45355,6 +45355,7 @@ try {
   if (!action) {
     throw new Error("No action was passed");
   }
+  console.log(action);
   if (!email || !apiKey || !projectId) {
     throw new Error("You are missing a required parameter. Check the documentation for details.");
   }
