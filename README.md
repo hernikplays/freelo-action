@@ -29,6 +29,10 @@ jobs:
           task-id: ""
 ```
 
+> [!WARNING]
+> It's okay to omit some of the `on` listening types, but it is needed to keep the `issue.opened` type,
+> because it creates the task and the comment to track the task across action runs.
+
 ### Linking GitHub users to Freelo users
 The action will look for a `freelo.txt` file inside of your `.github` folder (the one where Action workflows are stored).
 In it you can map GitHub usernames to Freelo IDs, one user per line:
@@ -38,11 +42,15 @@ hernikplays:14832
 john_doe:6586
 ```
 
-If the file cannot be found, no mapping will be done and the action will simply put the GitHub username in the task description.
-In case the file is not formatted correctly or another error occures, the action will throw an error.
+If the file cannot be found or cannot be correctly loaded, no mapping will be done and the action will simply use the GitHub username in place of the Freelo ID.
 
 ### Security
-Because I have not found any documentation on how Freelo handles sanitization of input, I've included the usage of [sanitize-html](https://www.npmjs.com/package/sanitize-html) to sanitize any user input. The only allowed tags are `"a","p","i","b","strong"`
+Because I have not found any documentation on how Freelo handles sanitization of input, I've included the usage of [sanitize-html](https://www.npmjs.com/package/sanitize-html) to sanitize any user input. The only allowed tags are `"a","p","i","b","strong"`.
+
+If you feel like a security issue has been introduced in the code, feel free to [report it](https://github.com/hernikplays/freelo-action/security/advisories/new).
+
+## Contributing
+See [CONTRIBUTING.md](https://github.com/hernikplays/freelo-action/blob/main/CONTRIBUTING.md).
 
 ## License
 ```
