@@ -1,0 +1,24 @@
+name: 'Sync Issues to Freelo'
+description: 'One-way synchronization of GitHub issues to Freelo'
+author: 'Matyáš Caras'
+
+inputs:
+  email:
+    description: 'The e-mail address used for Freelo authentication'
+    required: true
+  api-key:
+    description: 'The API key used for Freelo authentication'
+    required: true
+  project-id:
+    description: 'ID of the project where tasks should be created'
+    required: true
+  github-token:
+    description: 'Your GitHub token used to operate on your repository (should be secrets.GITHUB_TOKEN)'
+    required: true
+  task-id:
+    description: 'If not empty, will submit created issues as a subtask to the set task; either this or tasklist-id has to be entered.'
+  tasklist-id:
+    description: 'ID of the tasklist where tasks from GitHub issues should be created; either this or task-id has to be entered.'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

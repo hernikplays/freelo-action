@@ -1,0 +1,21 @@
+name: Run the action
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened, edited, closed, reopened, assigned, unassigned]
+  issue_comment:
+    types: [created, edited, deleted]
+
+jobs:
+  run-my-action:
+    name: Checks if this action works
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./
+        with:
+          email: ""
+          api-key: ""
+          project-id: ""
+          task-id: ""
