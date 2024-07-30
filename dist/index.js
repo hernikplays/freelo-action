@@ -45354,7 +45354,7 @@ try {
     }
     if (tasklistId) {
       switch (action) {
-        case "created": {
+        case "opened": {
           const author = userPairing && userPairing.filter((u) => u.includes(issue.user.login)).length > 0 ? `<div><span data-freelo-mention="1" data-freelo-user-id="${userPairing.filter((u) => u.includes(issue.user.login))[0].split(":")[1]}">@${issue.user.login}</span></div>` : `@${issue.user.login}`;
           const taskComment = `
                 Created by: ${author}

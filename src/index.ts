@@ -64,7 +64,7 @@ try {
 
 		if (tasklistId) {
 			switch (action) {
-				case "created": {
+				case "opened": {
 					// New issue has been created, create a task in tasklist
 					const author =
 						userPairing &&
@@ -83,7 +83,7 @@ try {
 						comment: {
 							content: taskComment,
 						},
-					};
+					}; // TODO: assignee
 
 					const res = await axios.post(
 						`${apiEndpoint}/project/${projectId}/tasklist/${tasklistId}/tasks`,
