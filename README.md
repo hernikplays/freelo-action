@@ -1,6 +1,9 @@
 # Freelo Synchronization GitHub action
 This action can be used for a one-way synchronization of GitHub issues into [Freelo](https://freelo.io)
 
+It will log in as a Freelo user and create tasks/subtasks from created issues. Depending on the set up, it can
+also update it based on edits made on GitHub (see below).
+
 ## How to use
 Example action.yml showcasing all supported `on` calls:
 
@@ -32,6 +35,16 @@ jobs:
 > [!WARNING]
 > It's okay to omit some of the `on` listening types, but it is needed to keep the `issue.opened` type,
 > because it creates the task and the comment to track the task across action runs.
+
+### Parameters
+| Parameter    | Description                                                                                      | Required                    |
+|--------------|--------------------------------------------------------------------------------------------------|-----------------------------|
+| email        | E-mail used to log into Freelo; will be the author of all tasks/comments created by this action! | Yes                         |
+| api-key      | API key to authenticate the user                                                                 | Yes                         |
+| project-id   | ID of the project where tasks will be created                                                    | Yes                         |
+| github-token | GitHub token used to create issue comments; you should use the default `secrets.GITHUB_TOKEN`    | Yes                         |
+| task-id      | ID of the task under which subtasks will be created from issues                                  | If `tasklist-id` is not set |
+| tasklist-id  | ID of the tasklist where tasks will be created from issues                                       | If `task-id` is not set     |
 
 ### Linking GitHub users to Freelo users
 The action will look for a `freelo.txt` file inside of your `.github` folder (the one where Action workflows are stored).
