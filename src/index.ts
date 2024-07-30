@@ -3,6 +3,7 @@ import { context, getOctokit } from "@actions/github";
 import axios from "axios";
 import sanitize from "sanitize-html";
 import type { NewTask } from "./freelo";
+import { readFile } from "node:fs/promises";
 
 // user input
 const email = getInput("email");
@@ -57,8 +58,8 @@ try {
 		// Load GitHub:Freelo pairing if available
 		let userPairing: string[] | undefined;
 		try {
-			userPairing = (await Bun.file(".github/freelo.txt").text()).split("\n");
-		} catch (_) {
+			userPairing = (await readFile("./.github/freelo.txt",{encoding:"utf-8"})).split("\n");
+		} catch (e) {
 			console.log("No freelo.txt found in .github folder, skipping");
 		}
 
@@ -70,12 +71,13 @@ try {
 						userPairing &&
 						userPairing.filter((u) => u.includes(issue.user.login)).length > 0
 							? `<div><span data-freelo-mention="1" data-freelo-user-id="${userPairing.filter((u) => u.includes(issue.user.login))[0].split(":")[1]}">@${issue.user.login}</span></div>`
-							: `@${issue.user.login}`;
+							: `<a href="https://github.com/${issue.user.login}">${issue.user.login}</a>`;
+                    console.log(userPairing?.filter((u) => u.includes(issue.user.login)).length)
 					const taskComment = `
-                Created by: ${author}
-                Description: ${sanitize(issue.body ?? "None", sanitizeOptions)}
-                GitHub issue: <a href="${issue.url}">#${issue.number}</a>
-                (This action was performed automatically)
+                Created by: ${author}<br>
+                Description: ${sanitize(issue.body ?? "None", sanitizeOptions)}<br>
+                GitHub issue: <a href="${issue.url}">#${issue.number}</a><br>
+                <i>(This action was performed automatically)</i>
                 `;
 
 					const taskContent: NewTask = {
@@ -106,7 +108,7 @@ try {
 					// create an issue comment so we can track if the task has been already created
 					octokit.rest.issues.createComment({
 						issue_number: issue.number,
-						owner: context.payload.repository?.name ?? "",
+						owner: context.payload.repository?.owner.login ?? "",
 						repo: context.payload.repository?.name ?? "",
 						body: `Freelo task assigned: <a href="https://app.freelo.io/task/${res.data.id}">${res.data.id}</a><br>Please do not edit or delete this comment as it is used to prevent duplication of tasks.`,
 					});

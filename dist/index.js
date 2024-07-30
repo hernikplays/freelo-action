@@ -45309,6 +45309,7 @@ var axios_default = axios;
 
 // src/index.ts
 var import_sanitize_html = __toESM(require_sanitize_html(), 1);
+import {readFile} from "node:fs/promises";
 var email = core.getInput("email");
 var apiKey = core.getInput("api-key");
 var projectId = core.getInput("project-id");
@@ -45348,19 +45349,20 @@ try {
     }
     let userPairing;
     try {
-      userPairing = (await Bun.file(".github/freelo.txt").text()).split("\n");
-    } catch (_) {
+      userPairing = (await readFile("./.github/freelo.txt", { encoding: "utf-8" })).split("\n");
+    } catch (e) {
       console.log("No freelo.txt found in .github folder, skipping");
     }
     if (tasklistId) {
       switch (action) {
         case "opened": {
-          const author = userPairing && userPairing.filter((u) => u.includes(issue.user.login)).length > 0 ? `<div><span data-freelo-mention="1" data-freelo-user-id="${userPairing.filter((u) => u.includes(issue.user.login))[0].split(":")[1]}">@${issue.user.login}</span></div>` : `@${issue.user.login}`;
+          const author = userPairing && userPairing.filter((u) => u.includes(issue.user.login)).length > 0 ? `<div><span data-freelo-mention="1" data-freelo-user-id="${userPairing.filter((u) => u.includes(issue.user.login))[0].split(":")[1]}">@${issue.user.login}</span></div>` : `<a href="https://github.com/${issue.user.login}">${issue.user.login}</a>`;
+          console.log(userPairing?.filter((u) => u.includes(issue.user.login)).length);
           const taskComment = `
-                Created by: ${author}
-                Description: ${import_sanitize_html.default(issue.body ?? "None", sanitizeOptions)}
-                GitHub issue: <a href="${issue.url}">#${issue.number}</a>
-                (This action was performed automatically)
+                Created by: ${author}<br>
+                Description: ${import_sanitize_html.default(issue.body ?? "None", sanitizeOptions)}<br>
+                GitHub issue: <a href="${issue.url}">#${issue.number}</a><br>
+                <i>(This action was performed automatically)</i>
                 `;
           const taskContent = {
             name: issue.title,
@@ -45381,7 +45383,7 @@ try {
           }
           octokit.rest.issues.createComment({
             issue_number: issue.number,
-            owner: github.context.payload.repository?.name ?? "",
+            owner: github.context.payload.repository?.owner.login ?? "",
             repo: github.context.payload.repository?.name ?? "",
             body: `Freelo task assigned: <a href="https://app.freelo.io/task/${res.data.id}">${res.data.id}</a><br>Please do not edit or delete this comment as it is used to prevent duplication of tasks.`
           });
